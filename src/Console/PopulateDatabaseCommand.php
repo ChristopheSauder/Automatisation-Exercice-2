@@ -6,10 +6,12 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Office;
 use Illuminate\Support\Facades\Schema;
+use Faker\Factory as Faker;
 use Slim\App;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use function Symfony\Component\Clock\now;
 
 class PopulateDatabaseCommand extends Command
 {
@@ -24,12 +26,12 @@ class PopulateDatabaseCommand extends Command
     protected function configure(): void
     {
         $this->setName('db:populate');
-        $this->setDescription('Populate database');
+        $this->setDescription('Populate database with random data');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output ): int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $output->writeln('Populate database...');
+        $output->writeln('Populating database with random data...');
 
         /** @var \Illuminate\Database\Capsule\Manager $db */
         $db = $this->app->getContainer()->get('db');
@@ -40,34 +42,72 @@ class PopulateDatabaseCommand extends Command
         $db->getConnection()->statement("TRUNCATE `companies`");
         $db->getConnection()->statement("SET FOREIGN_KEY_CHECKS=1");
 
+        $faker = Faker::create();
 
-        $db->getConnection()->statement("INSERT INTO `companies` VALUES
-    (1,'Stack Exchange','0601010101','stack@exchange.com','https://stackexchange.com/','https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Verisure_information_technology_department_at_Ch%C3%A2tenay-Malabry_-_2019-01-10.jpg/1920px-Verisure_information_technology_department_at_Ch%C3%A2tenay-Malabry_-_2019-01-10.jpg', now(), now(), null),
-    (2,'Google','0602020202','contact@google.com','https://www.google.com','https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Google_office_%284135991953%29.jpg/800px-Google_office_%284135991953%29.jpg?20190722090506',now(), now(), null)
-        ");
+        // Generate companies
+        $companies = [];
+        for ($i = 1; $i <= rand(2, 4); $i++) {
+            $companies[] = [
+                'id' => $i,
+                'name' => $faker->company,
+                'phone' => $faker->phoneNumber,
+                'email' => $faker->companyEmail,
+                'website' => $faker->url,
+                'image' => $faker->imageUrl(640, 480, 'business'),
+                'created_at' => now(),
+                'updated_at' => now(),
+                'head_office_id' => null
+            ];
+        }
+        $db->table('companies')->insert($companies);
 
-        $db->getConnection()->statement("INSERT INTO `offices` VALUES
-    (1,'Bureau de Nancy','1 rue Stanistlas','Nancy','54000','France','nancy@stackexchange.com',NULL,1, now(), now()),
-    (2,'Burea de Vandoeuvre','46 avenue Jeanne d\'Arc','Vandoeuvre','54500','France',NULL,NULL,1, now(), now()),
-    (3,'Siege sociale','2 rue de la primatiale','Paris','75000','France',NULL,NULL,2, now(), now()),
-    (4,'Bureau Berlinois','192 avenue central','Berlin','12277','Allemagne',NULL,NULL,2, now(), now())
-        ");
+        // Generate offices
+        $offices = [];
+        foreach ($companies as $company) {
+            for ($j = 1; $j <= rand(2, 3); $j++) {
+                $offices[] = [
+                    'id' => count($offices) + 1,
+                    'name' => $faker->streetName,
+                    'address' => $faker->address,
+                    'city' => $faker->city,
+                    'zip_code' => $faker->postcode,
+                    'country' => $faker->country,
+                    'email' => $faker->email,
+                    'phone' => $faker->phoneNumber,
+                    'company_id' => $company['id'],
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+        }
+        $db->table('offices')->insert($offices);
 
-        $db->getConnection()->statement("INSERT INTO `employees` VALUES
-     (1,'Camille','La Chenille',1,'camille.la@chenille.com',NULL,'Ingénieur', now(), now()),
-     (2,'Albert','Mudhat',2,'albert.mudhat@aqume.net',NULL,'Superviseur', now(), now()),
-     (3,'Sylvie','Tesse',3,'sylive.tesse@factice.local',NULL,'PDG', now(), now()),
-     (4,'John','Doe',4,'john.doe@generique.org',NULL,'Testeur', now(), now()),
-     (5,'Jean','Bon',1,'jean@test.com',NULL,'Developpeur', now(), now()),
-     (6,'Anais','Dufour',2,'anais@aqume.net',NULL,'DBA', now(), now()),
-     (7,'Sylvain','Poirson',3,'sylvain@factice.local',NULL,'Administrateur réseau', now(), now()),
-     (8,'Telma','Thiriet',4,'telma@generique.org',NULL,'Juriste', now(), now())
-        ");
+        // Generate employees
+        $employees = [];
+        foreach ($offices as $office) {
+            for ($k = 1; $k <= rand(10, 15); $k++) {
+                $employees[] = [
+                    'id' => count($employees) + 1,
+                    'first_name' => $faker->firstName,
+                    'last_name' => $faker->lastName,
+                    'office_id' => $office['id'],
+                    'email' => $faker->email,
+                    'phone' => $faker->phoneNumber,
+                    'job_title' => $faker->jobTitle,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+        }
+        $db->table('employees')->insert($employees);
 
-        $db->getConnection()->statement("update companies set head_office_id = 1 where id = 1;");
-        $db->getConnection()->statement("update companies set head_office_id = 3 where id = 2;");
+        // Update head office for each company
+        foreach ($companies as $company) {
+            $headOfficeId = $offices[array_rand(array_filter($offices, fn($office) => $office['company_id'] === $company['id']))]['id'];
+            $db->table('companies')->where('id', $company['id'])->update(['head_office_id' => $headOfficeId]);
+        }
 
-        $output->writeln('Database created successfully!');
+        $output->writeln('Database populated successfully!');
         return 0;
     }
 }
