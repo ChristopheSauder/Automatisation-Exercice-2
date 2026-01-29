@@ -4,8 +4,9 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>{% block title %}Annuaire des société{% endblock %}</title>
+	{{ vite_client() | raw }}
 	{% block stylesheets %}
-		<link rel="stylesheet" href="/assets/style.css" >
+		<link rel="stylesheet" href="{{ vite_asset('assets/style.css') }}" >
 	{% endblock %}
 </head>
 
@@ -26,7 +27,7 @@
 </div>
 
 {% block scripts %}
-	<script src="/assets/script.js"></script>
+	<script src="{{ vite_asset('assets/script.js') }}"></script>
 {% endblock %}
 </body>
 </html>

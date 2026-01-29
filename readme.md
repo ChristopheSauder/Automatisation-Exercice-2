@@ -37,13 +37,54 @@ Il faut que le container database soit lancé pour effectuer ces commandes.
  
 **Supprimer et re-créer la base de données**  
 ```bash
-docker compose exec php bin/console db:create
+docker compose exec php php bin/console db:create
 ```
 
 **Alimenter la base de données**  
 ```bash
-docker compose exec php bin/console db:populate 
+docker compose exec php php bin/console db:populate 
 ```
+
+## Linters et Qualité du code
+
+**PHPCS (PHP_CodeSniffer)**  
+```bash
+docker compose run --rm php composer phpcs
+```
+
+**PHPStan (Analyse statique PHP)**  
+```bash
+docker compose run --rm php composer phpstan
+```
+
+**ESLint (JavaScript)**  
+```bash
+npm run lint         # Vérifier
+npm run lint:fix     # Corriger automatiquement
+```
+
+## Vite - Build et Développement
+
+**Mode Production (par défaut)**
+```bash
+npm run build        # Compiler les assets → public/build/
+```
+
+**Mode Développement (avec HMR)**
+1. Modifier `.env`: `APP_ENV=dev`
+2. Lancer le serveur Vite:
+```bash
+npm run dev          # Dev server sur http://localhost:5173
+```
+3. Les changements CSS/JS sont appliqués automatiquement
+
+Voir [VITE_SETUP.md](VITE_SETUP.md) pour plus de détails.
+
+## Git Hooks
+
+Les git hooks sont configurés avec Husky:
+- **pre-commit**: Lint les fichiers modifiés (ESLint + PHPCS)
+- **pre-push**: Analyse statique avec PHPStan
 
 ## Structure du projet
 - **bin** : Contient le script permettant de lancer des commandes. 

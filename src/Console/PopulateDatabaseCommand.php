@@ -27,11 +27,10 @@ class PopulateDatabaseCommand extends Command
         $this->setDescription('Populate database');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output ): int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $output->writeln('Populate database...');
 
-        /** @var \Illuminate\Database\Capsule\Manager $db */
         $db = $this->app->getContainer()->get('db');
 
         $db->getConnection()->statement("SET FOREIGN_KEY_CHECKS=0");
@@ -40,34 +39,94 @@ class PopulateDatabaseCommand extends Command
         $db->getConnection()->statement("TRUNCATE `companies`");
         $db->getConnection()->statement("SET FOREIGN_KEY_CHECKS=1");
 
+        $faker = \Faker\Factory::create('fr_FR');
 
-        $db->getConnection()->statement("INSERT INTO `companies` VALUES
-    (1,'Stack Exchange','0601010101','stack@exchange.com','https://stackexchange.com/','https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Verisure_information_technology_department_at_Ch%C3%A2tenay-Malabry_-_2019-01-10.jpg/1920px-Verisure_information_technology_department_at_Ch%C3%A2tenay-Malabry_-_2019-01-10.jpg', now(), now(), null),
-    (2,'Google','0602020202','contact@google.com','https://www.google.com','https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Google_office_%284135991953%29.jpg/800px-Google_office_%284135991953%29.jpg?20190722090506',now(), now(), null)
-        ");
+        $companyIds = [];
+        $officeIds = [];
+        $companyHeadOffice = [];
 
-        $db->getConnection()->statement("INSERT INTO `offices` VALUES
-    (1,'Bureau de Nancy','1 rue Stanistlas','Nancy','54000','France','nancy@stackexchange.com',NULL,1, now(), now()),
-    (2,'Burea de Vandoeuvre','46 avenue Jeanne d\'Arc','Vandoeuvre','54500','France',NULL,NULL,1, now(), now()),
-    (3,'Siege sociale','2 rue de la primatiale','Paris','75000','France',NULL,NULL,2, now(), now()),
-    (4,'Bureau Berlinois','192 avenue central','Berlin','12277','Allemagne',NULL,NULL,2, now(), now())
-        ");
+        $numCompanies = rand(2, 4);
 
-        $db->getConnection()->statement("INSERT INTO `employees` VALUES
-     (1,'Camille','La Chenille',1,'camille.la@chenille.com',NULL,'Ingénieur', now(), now()),
-     (2,'Albert','Mudhat',2,'albert.mudhat@aqume.net',NULL,'Superviseur', now(), now()),
-     (3,'Sylvie','Tesse',3,'sylive.tesse@factice.local',NULL,'PDG', now(), now()),
-     (4,'John','Doe',4,'john.doe@generique.org',NULL,'Testeur', now(), now()),
-     (5,'Jean','Bon',1,'jean@test.com',NULL,'Developpeur', now(), now()),
-     (6,'Anais','Dufour',2,'anais@aqume.net',NULL,'DBA', now(), now()),
-     (7,'Sylvain','Poirson',3,'sylvain@factice.local',NULL,'Administrateur réseau', now(), now()),
-     (8,'Telma','Thiriet',4,'telma@generique.org',NULL,'Juriste', now(), now())
-        ");
+        for ($c = 0; $c < $numCompanies; $c++) {
+            $name = $faker->company;
+            $phone = preg_replace('/[^0-9+]/', '', $faker->phoneNumber);
+            $email = $faker->companyEmail;
+            $website = $faker->url;
+            $image = 'https://via.placeholder.com/200x100?text='
+                . rawurlencode($name);
 
-        $db->getConnection()->statement("update companies set head_office_id = 1 where id = 1;");
-        $db->getConnection()->statement("update companies set head_office_id = 3 where id = 2;");
+            $db->getConnection()->statement(
+                "INSERT INTO `companies` (name, phone, email, website, image, "
+                . "created_at, updated_at) VALUES (?, ?, ?, ?, ?, now(), now())",
+                [$name, $phone, $email, $website, $image]
+            );
 
-        $output->writeln('Database created successfully!');
+            $companyId = (int)$db->getConnection()->getPdo()->lastInsertId();
+            $companyIds[] = $companyId;
+
+            $officeCount = rand(2, 3);
+            for ($o = 0; $o < $officeCount; $o++) {
+                $addr = $faker->streetAddress;
+                $city = $faker->city;
+                $zip = preg_replace('/[^0-9]/', '', $faker->postcode);
+                $country = 'France';
+                $officeEmail = 'contact+' . $companyId . '+' . ($o + 1) . '@'
+                    . strtolower(preg_replace('/\\W+/', '', $name)) . '.fr';
+                $officeName = ($o === 0 ? 'Siège social - ' : 'Bureau - ')
+                    . $city;
+
+                $db->getConnection()->statement(
+                    "INSERT INTO `offices` (name, address, city, zip_code, "
+                    . "country, email, created_at, updated_at, company_id) "
+                    . "VALUES (?, ?, ?, ?, ?, ?, now(), now(), ?)",
+                    [$officeName, $addr, $city, $zip, $country, $officeEmail,
+                        $companyId]
+                );
+
+                $officeId = (int)$db->getConnection()->getPdo()->lastInsertId();
+                $officeIds[] = $officeId;
+
+                if ($o === 0) {
+                    $companyHeadOffice[$companyId] = $officeId;
+                }
+            }
+        }
+
+        $jobs = [
+            'Développeur', 'Ingénieur', 'Manager', 'Testeur', 'DBA',
+            'Administrateur réseau', 'Chef de projet', 'Analyste', 'Consultant'
+        ];
+        $employeeCount = 10;
+
+        for ($e = 0; $e < $employeeCount; $e++) {
+            $first = $faker->firstName;
+            $last = $faker->lastName;
+            $officeId = $officeIds[array_rand($officeIds)];
+            $email = strtolower(
+                preg_replace('/\\W+/', '', $first . '.' . $last)
+            ) . '@' . strtolower($faker->domainName);
+            $phone = preg_replace('/[^0-9+]/', '', $faker->phoneNumber);
+            $job = $jobs[array_rand($jobs)];
+
+            $db->getConnection()->statement(
+                "INSERT INTO `employees` (first_name, last_name, office_id, "
+                . "email, phone, job_title, created_at, updated_at) "
+                . "VALUES (?, ?, ?, ?, ?, ?, now(), now())",
+                [$first, $last, $officeId, $email, $phone, $job]
+            );
+        }
+
+        foreach ($companyIds as $companyId) {
+            $headOfficeId = $companyHeadOffice[$companyId] ?? $officeIds[0];
+            if ($headOfficeId) {
+                $db->getConnection()->statement(
+                    "UPDATE companies SET head_office_id = ? WHERE id = ?",
+                    [$headOfficeId, $companyId]
+                );
+            }
+        }
+
+        $output->writeln('Database populated successfully!');
         return 0;
     }
 }

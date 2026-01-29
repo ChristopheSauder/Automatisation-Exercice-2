@@ -1,0 +1,13 @@
+{
+  "assets/script.js": {
+    "file": "assets/main-CeZOe3_b.js",
+    "name": "main",
+    "src": "assets/script.js",
+    "isEntry": true
+  },
+  "assets/style.css": {
+    "file": "assets/style-CHXB5bck.css",
+    "src": "assets/style.css",
+    "isEntry": true
+  }
+}

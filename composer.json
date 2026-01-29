@@ -1,6 +1,6 @@
 {
     "require": {
-        "php": "^8.4",
+        "php": "^8.1",
         "vlucas/phpdotenv": "^5.6",
         "slim/slim": "^4.12",
         "slim/psr7": "^1.6",
@@ -15,5 +15,14 @@
         "psr-4": {
             "App\\": "src/"
         }
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^4.0",
+        "phpstan/phpstan": "^2.1",
+        "fakerphp/faker": "^1.24"
+    },
+    "scripts": {
+        "phpcs": "vendor/bin/phpcs --standard=phpcs.xml src",
+        "phpstan": "vendor/bin/phpstan analyse src --level 7"
     }
 }

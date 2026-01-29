@@ -5,6 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $address
+ * @property string $city
+ * @property string $zip_code
+ * @property string $country
+ * @property string $email
+ * @property string $phone
+ * @property int $company_id
+ * @property-read Company $company
+ * @method static find($id)
+ */
 class Office extends Model
 {
     protected $table = 'offices';

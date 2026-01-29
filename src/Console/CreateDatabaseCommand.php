@@ -23,7 +23,7 @@ class CreateDatabaseCommand extends Command
         $this->setDescription('Create database');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output ): int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $output->writeln('Creating database...');
         $db = $this->app->getContainer()->get('db');

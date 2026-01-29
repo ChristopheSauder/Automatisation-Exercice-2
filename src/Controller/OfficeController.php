@@ -9,12 +9,11 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\Exception\HttpNotFoundException;
 
-
 class OfficeController extends DefaultController
 {
     public function editGet(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-       $office = $this->findOfficeById($request);
+        $office = $this->findOfficeById($request);
 
         return $this->twig->render($response, 'office/form.twig', ['office' => $office]);
     }
@@ -57,7 +56,7 @@ class OfficeController extends DefaultController
             throw new InvalidArgumentException('Invalid office id format');
         }
 
-        $office = Office::find($request->getAttribute('id'));
+        $office = Office::query()->find($officeId);
         if (!$office) {
             throw new HttpNotFoundException($request);
         }
